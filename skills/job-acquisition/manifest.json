@@ -1,0 +1,8 @@
+{
+  "id": "job-acquisition",
+  "name": "Job Acquisition",
+  "description": "Discovers, filters, scores, and tracks high-value job opportunities for the candidate.",
+  "version": "1.0.0",
+  "entry": "./index.mjs",
+  "status": "implemented"
+}

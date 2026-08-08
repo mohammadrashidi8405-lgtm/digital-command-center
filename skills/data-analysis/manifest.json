@@ -1,0 +1,8 @@
+{
+  "id": "data-analysis",
+  "name": "Data Analysis",
+  "description": "Future capability: structured data analysis workflows. Not yet implemented.",
+  "version": "0.0.0",
+  "entry": null,
+  "status": "planned"
+}

@@ -1,0 +1,18 @@
+{
+  "skills": {
+    "job-acquisition": true,
+    "data-analysis": false,
+    "product-development": false,
+    "research": false
+  },
+  "jobAcquisition": {
+    "scoreThreshold": 85,
+    "minResultsBeforeReportingShortfall": 3
+  },
+  "memory": {
+    "obsidianVaultPath": null
+  },
+  "brain": {
+    "provider": "file-drop"
+  }
+}

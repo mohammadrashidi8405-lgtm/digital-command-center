@@ -1,0 +1,56 @@
+{
+  "_comment": "Template only. Copy this file to profile.json (gitignored) and fill in real values. profile.json is never committed.",
+  "identity": {
+    "displayName": "Sir Edward"
+  },
+  "education": [
+    {
+      "degree": "Bachelor of Economics",
+      "institution": "Example University",
+      "status": "undergraduate"
+    }
+  ],
+  "languages": [
+    { "language": "English", "level": "B2" },
+    { "language": "Persian", "level": "C2" },
+    { "language": "Kurdish", "level": "native" }
+  ],
+  "skills": {
+    "aiAssisted": ["Python", "JavaScript", "React.js", "SQL", "Node.js", "HTML"],
+    "tools": ["Git/GitHub", "Claude Code", "ChatGPT", "Prompt Engineering", "EViews", "Microsoft Excel"],
+    "disclaimer": "Python/JavaScript/React.js/SQL experience involved significant AI assistance. Do not represent as an advanced independent software engineer."
+  },
+  "projects": [
+    {
+      "name": "Example Project",
+      "role": "Contributor",
+      "summary": "One-line description of what was built and your contribution.",
+      "evidenceType": "real-business-platform"
+    }
+  ],
+  "targetRoles": {
+    "primary": [
+      "AI Operations Intern",
+      "AI Startup Intern",
+      "AI Product Intern",
+      "AI Automation Intern",
+      "Product Operations Intern",
+      "AI Implementation Intern",
+      "AI Workflow Intern",
+      "Junior AI/Product Operations"
+    ],
+    "secondary": [
+      "Junior Data Analyst",
+      "Data Analyst Intern",
+      "Economic Data Analyst",
+      "Research/Data Analyst Intern",
+      "Business Analyst Intern",
+      "Data Operations Intern"
+    ]
+  },
+  "eligibility": {
+    "remoteOnly": false,
+    "eligibleCountries": ["remote-global"],
+    "workAuthorizationNotes": "Fill in manually. Never let the agent infer or invent this."
+  }
+}

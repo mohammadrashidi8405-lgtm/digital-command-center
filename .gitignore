@@ -1,0 +1,43 @@
+# --- Secrets & credentials (never commit) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*credentials*
+*token*
+*secret*
+
+# --- Personal / candidate data (real identity, kept local-only) ---
+config/profile.json
+
+# --- Runtime state (operational, not source) ---
+memory/state/*.json
+memory/local-vault/
+logs/*.log
+logs/*.jsonl
+core/brain/inbox/*
+core/brain/outbox/*
+!core/brain/inbox/.gitkeep
+!core/brain/outbox/.gitkeep
+skills/job-acquisition/outbox/*
+!skills/job-acquisition/outbox/.gitkeep
+skills/job-acquisition/manual-import/*
+!skills/job-acquisition/manual-import/.gitkeep
+!skills/job-acquisition/manual-import/example.json.template
+!memory/state/.gitkeep
+
+# --- Obsidian vault (may contain personal notes; vault lives outside repo by default) ---
+*.obsidian/
+
+# --- Node ---
+node_modules/
+npm-debug.log*
+.npm/
+
+# --- OS ---
+.DS_Store
+
+# --- Editor ---
+.vscode/
+.idea/

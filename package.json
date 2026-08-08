@@ -1,0 +1,19 @@
+{
+  "name": "digital-command-center",
+  "version": "1.0.0",
+  "description": "Modular, extensible, locally-runnable personal AI command center. Active skill: Job Acquisition.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "bin": {
+    "dcc": "./scripts/cli.mjs"
+  },
+  "scripts": {
+    "cli": "node scripts/cli.mjs",
+    "test": "node --test tests/**/*.test.mjs"
+  },
+  "license": "UNLICENSED",
+  "author": "Sir Edward"
+}
