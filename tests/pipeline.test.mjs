@@ -1,6 +1,6 @@
 import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { writeFileSync, unlinkSync, existsSync, readdirSync } from 'node:fs';
+import { writeFileSync, unlinkSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runCampaign } from '../skills/job-acquisition/pipeline.mjs';
@@ -33,12 +33,15 @@ const profile = {
 
 const config = { jobAcquisition: { scoreThreshold: 85, minResultsBeforeReportingShortfall: 3 } };
 
+// Draft files this test run causes prepareApplicationDraft() to write, tracked
+// by key so cleanup never touches real pre-existing drafts in the outbox.
+const draftKeysWritten = new Set();
+
 after(() => {
   if (existsSync(fixtureFile)) unlinkSync(fixtureFile);
-  // Clean up any draft files this test caused prepareApplicationDraft to write.
-  for (const f of readdirSync(OUTBOX_DIR)) {
-    if (f === '.gitkeep') continue;
-    unlinkSync(join(OUTBOX_DIR, f));
+  for (const key of draftKeysWritten) {
+    const path = join(OUTBOX_DIR, `${key}-application.md`);
+    if (existsSync(path)) unlinkSync(path);
   }
 });
 
@@ -59,6 +62,7 @@ describe('job-acquisition pipeline: threshold + shortfall (§20)', () => {
 
     const memory = fakeMemory();
     const result = await runCampaign({ memory, brain: null, profile, config, sourcesFilter: ['manual'] });
+    for (const j of result.jobs) draftKeysWritten.add(j.key);
 
     assert.equal(result.selected, 1);
     assert.equal(result.jobs[0].company, 'Great Fit Co');
@@ -76,6 +80,7 @@ describe('job-acquisition pipeline: threshold + shortfall (§20)', () => {
 
     const memory = fakeMemory();
     const result = await runCampaign({ memory, brain: null, profile, config, sourcesFilter: ['manual'] });
+    for (const j of result.jobs) draftKeysWritten.add(j.key);
 
     assert.ok(result.selected < 3);
     assert.equal(result.shortfall, true);
@@ -92,7 +97,9 @@ describe('job-acquisition pipeline: threshold + shortfall (§20)', () => {
 
     const memory = fakeMemory();
     const first = await runCampaign({ memory, brain: null, profile, config, sourcesFilter: ['manual'] });
+    for (const j of first.jobs) draftKeysWritten.add(j.key);
     const second = await runCampaign({ memory, brain: null, profile, config, sourcesFilter: ['manual'] });
+    for (const j of second.jobs) draftKeysWritten.add(j.key);
 
     assert.equal(first.screened, 1);
     assert.equal(second.screened, 0); // same fixture file, already-tracked key is skipped

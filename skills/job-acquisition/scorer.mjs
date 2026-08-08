@@ -98,11 +98,16 @@ export function scoreJob(job, profile) {
   };
   const base = Object.values(breakdown).reduce((a, b) => a + b, 0);
 
+  // Require 2+ distinct marker hits per bonus category, not just 1 — a single
+  // generic word ("startup", "collaborate") is too easy for ordinary listings
+  // to trip, which would undermine the §13 "aggressively filter" requirement
+  // by handing out +20 of clamped headroom on unremarkable listings.
+  const BONUS_MIN_HITS = 2;
   const bonuses = [];
-  if (countMatches(text, BONUS_MARKERS.aiStartupAlignment) > 0) bonuses.push(['strong AI/startup alignment', 5]);
-  if (countMatches(text, BONUS_MARKERS.portfolioRelevance) > 0) bonuses.push(['strong portfolio relevance', 5]);
-  if (countMatches(text, BONUS_MARKERS.teamEnvironment) > 0) bonuses.push(['evidence of genuine team environment', 5]);
-  if (countMatches(text, BONUS_MARKERS.founderAccessible) > 0) bonuses.push(['founder/hiring-manager accessibility', 5]);
+  if (countMatches(text, BONUS_MARKERS.aiStartupAlignment) >= BONUS_MIN_HITS) bonuses.push(['strong AI/startup alignment', 5]);
+  if (countMatches(text, BONUS_MARKERS.portfolioRelevance) >= BONUS_MIN_HITS) bonuses.push(['strong portfolio relevance', 5]);
+  if (countMatches(text, BONUS_MARKERS.teamEnvironment) >= BONUS_MIN_HITS) bonuses.push(['evidence of genuine team environment', 5]);
+  if (countMatches(text, BONUS_MARKERS.founderAccessible) >= BONUS_MIN_HITS) bonuses.push(['founder/hiring-manager accessibility', 5]);
 
   const penalties = [];
   if (countMatches(text, PENALTY_MARKERS.majorSkillMismatch) > 0) penalties.push(['major skill mismatch', -10]);
