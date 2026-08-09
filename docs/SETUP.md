@@ -29,6 +29,14 @@ node scripts/cli.mjs campaign start
 
 Runs the full discovery→...→track pipeline against the live free job-board APIs (RemoteOK, Arbeitnow, HN "Who is hiring") plus anything you've dropped into `skills/job-acquisition/manual-import/` (see [JOB_ACQUISITION.md](JOB_ACQUISITION.md)).
 
+## Starting the Command Center UI (optional)
+
+```bash
+node server/api.mjs
+```
+
+Open `http://localhost:3939`. Local-only (binds to localhost), no external exposure. See [COMMAND_CENTER_UI.md](COMMAND_CENTER_UI.md).
+
 ## Connecting Obsidian (optional)
 
 Not required — the system writes identical Markdown to `memory/local-vault/` if no vault is configured. To connect a real vault later, see [memory/README.md](../memory/README.md).

@@ -22,6 +22,10 @@ No code path submits an application, sends an outreach message, or posts anywher
 
 Not implemented (see [LIMITATIONS.md](LIMITATIONS.md)). No credentials are ever exposed to a webpage, no cookies are stored, because there is no browser automation code running at all in v1.
 
+## Command Center UI / local API server
+
+`server/api.mjs` binds explicitly to `127.0.0.1`, not Node's default `0.0.0.0` — this was a real gap caught before commit (Node's `server.listen(port)` binds all interfaces unless a host is given), and it matters here because the API can toggle skills and trigger a real campaign run. Bound to loopback only, it is not reachable from the LAN. `/api/system` and `/api/status` are covered by a test (`tests/server.test.mjs`) asserting their responses never contain key/token/secret-shaped strings. Static file serving is confined to `ui/` with a path-traversal guard (`fullPath.startsWith(UI_DIR)`), also covered by a test.
+
 ## GitHub
 
 Pushed via the `gh` CLI using its existing local authentication (OAuth token stored in the system keyring, scopes `gist, read:org, repo, workflow`) — this codebase never reads, prints, or stores that token itself.

@@ -9,6 +9,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const IMPORT_DIR = join(ROOT, 'skills', 'job-acquisition', 'manual-import');
 const OUTBOX_DIR = join(ROOT, 'skills', 'job-acquisition', 'outbox');
 const fixtureFile = join(IMPORT_DIR, `pipeline-test-${process.pid}.json`);
+const TRACKING_NAMESPACE = 'job-acquisition-tracking';
 
 function fakeMemory() {
   const state = {};
@@ -64,9 +65,15 @@ describe('job-acquisition pipeline: threshold + shortfall (§20)', () => {
     const result = await runCampaign({ memory, brain: null, profile, config, sourcesFilter: ['manual'] });
     for (const j of result.jobs) draftKeysWritten.add(j.key);
 
-    assert.equal(result.selected, 1);
-    assert.equal(result.jobs[0].company, 'Great Fit Co');
-    assert.equal(result.hardFiltered, 1); // "Warehouse Associate" fails role-relevance hard filter
+    // Asserting on identity, not on totals: manual-import/ is real shared
+    // disk state and node:test runs test FILES concurrently, so another
+    // file's fixture can legitimately be present when this runs.
+    assert.ok(result.jobs.some((j) => j.company === 'Great Fit Co'), 'Great Fit Co should have been selected');
+    const tracking = memory._state[TRACKING_NAMESPACE];
+    const irrelevant = Object.values(tracking).find((r) => r.company === 'Irrelevant Co');
+    assert.ok(irrelevant, 'Irrelevant Co should have been tracked');
+    assert.equal(irrelevant.status, 'SKIPPED');
+    assert.ok(irrelevant.rejectionReasons.some((r) => r.startsWith('role-relevance')), 'Warehouse Associate should fail role-relevance');
   });
 
   test('reports a shortfall instead of lowering the threshold when fewer than the minimum qualify (§20)', async () => {
@@ -82,7 +89,11 @@ describe('job-acquisition pipeline: threshold + shortfall (§20)', () => {
     const result = await runCampaign({ memory, brain: null, profile, config, sourcesFilter: ['manual'] });
     for (const j of result.jobs) draftKeysWritten.add(j.key);
 
-    assert.ok(result.selected < 3);
+    assert.ok(result.jobs.some((j) => j.company === 'Solo Match Co'), 'Solo Match Co should have been selected');
+    // §20: only one job in this fixture, well under minResultsBeforeReportingShortfall
+    // (3) — and no other fixture written by this test suite scores >=85
+    // (manual-import.test.mjs's fixture scores ~66, verified by hand), so
+    // the global count staying under 3 is safe even with concurrent files.
     assert.equal(result.shortfall, true);
   });
 
@@ -101,7 +112,14 @@ describe('job-acquisition pipeline: threshold + shortfall (§20)', () => {
     const second = await runCampaign({ memory, brain: null, profile, config, sourcesFilter: ['manual'] });
     for (const j of second.jobs) draftKeysWritten.add(j.key);
 
-    assert.equal(first.screened, 1);
-    assert.equal(second.screened, 0); // same fixture file, already-tracked key is skipped
+    // Deliberately not asserting on `screened` totals: the manual-import
+    // directory is real, shared disk state, and node:test runs test FILES
+    // concurrently — another file's fixture (e.g. tests/manual-import.test.mjs)
+    // can legitimately be present at the same moment. Assert on this test's
+    // own job by key instead, which is immune to that cross-file overlap.
+    const tracking = memory._state[TRACKING_NAMESPACE];
+    const repeatCoEntries = Object.values(tracking).filter((r) => r.company === 'Repeat Co');
+    assert.equal(repeatCoEntries.length, 1, 'the Repeat Co job should be tracked exactly once, not re-added on the second run');
+    assert.equal(second.jobs.some((j) => j.company === 'Repeat Co'), false, 'the second run must not re-screen an already-tracked job');
   });
 });

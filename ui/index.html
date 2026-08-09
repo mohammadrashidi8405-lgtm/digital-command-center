@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Digital Command Center</title>
+<link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<div class="shell">
+  <header class="topbar" role="banner">
+    <div class="topbar-brand">
+      <span class="brand-mark" aria-hidden="true">◆</span>
+      <span class="brand-name">DIGITAL COMMAND CENTER</span>
+    </div>
+    <div class="topbar-status" id="topbar-status" aria-live="polite">
+      <span class="status-dot status-dot--ok" aria-hidden="true"></span>
+      <span>SYSTEM ONLINE</span>
+    </div>
+  </header>
+
+  <div class="body">
+    <nav class="sidenav" aria-label="Primary">
+      <ul>
+        <li><a href="#/dashboard" data-route="dashboard">Dashboard</a></li>
+        <li><a href="#/campaign" data-route="campaign">Campaign</a></li>
+        <li><a href="#/opportunities" data-route="opportunities">Opportunities</a></li>
+        <li><a href="#/skills" data-route="skills">Skills</a></li>
+        <li><a href="#/memory" data-route="memory">Memory</a></li>
+        <li><a href="#/activity" data-route="activity">Activity</a></li>
+        <li><a href="#/system" data-route="system">System</a></li>
+      </ul>
+
+      <div class="sidenav-command">
+        <label for="command-input" class="command-label">COMMAND</label>
+        <form id="command-form" autocomplete="off">
+          <input id="command-input" type="text" placeholder="start campaign…" aria-label="Command input">
+        </form>
+        <div id="command-output" class="command-output" role="status" aria-live="polite"></div>
+      </div>
+    </nav>
+
+    <main id="main" class="workspace" tabindex="-1">
+      <div id="view" aria-live="polite"></div>
+    </main>
+  </div>
+
+  <footer class="statusbar" role="contentinfo">
+    <span id="sb-brain" class="statusbar-item">Brain: —</span>
+    <span id="sb-memory" class="statusbar-item">Memory: —</span>
+    <span id="sb-skills" class="statusbar-item">Skills: —</span>
+    <span id="sb-campaign" class="statusbar-item">Campaign: —</span>
+    <span id="sb-health" class="statusbar-item">Health: —</span>
+  </footer>
+</div>
+
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>

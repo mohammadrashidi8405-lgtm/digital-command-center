@@ -3,7 +3,7 @@
 ```
 Digital-Command-Center/
 ├── core/
-│   ├── agent/       Agent — wires Config + Skills + Memory + Brain together
+│   ├── agent/       Agent — wires Config + Skills + Memory + Brain together; command-router.mjs (shared CLI/UI command parsing)
 │   ├── brain/        Brain interface + providers (file-drop today)
 │   ├── memory/        Memory interface + file-backed implementation
 │   ├── skills/         Skill registry (discovery, enable/disable, gating)
@@ -22,6 +22,8 @@ Digital-Command-Center/
 ├── logs/               command-center.jsonl
 ├── tests/                node:test suite
 ├── docs/                   this documentation
+├── server/api.mjs           Local HTTP+SSE API server for the Command Center UI
+├── ui/                         Static, framework-free HTML/CSS/JS frontend served by server/api.mjs
 └── scripts/cli.mjs           CLI entrypoint
 ```
 
@@ -44,6 +46,10 @@ The only provider implemented today is `FileDropBrain` (`core/brain/file-drop-br
 ## Memory
 
 Three kinds, kept separate on purpose — see [memory/README.md](../memory/README.md) for the full breakdown and how to connect a real Obsidian vault. Short version: JSON state is short-term and machine-owned; Markdown notes are long-term and human-readable (Obsidian-compatible); JSONL logs are append-only history.
+
+## Command Center UI (`server/`, `ui/`)
+
+The UI is a thin presentation layer, not a parallel implementation. `server/api.mjs` is a zero-dependency `node:http` server that constructs the same `Agent` the CLI uses and calls the same `agent.runSkillTask(...)` / `SkillRegistry` / `FileMemory` methods — there is no separate "UI version" of scoring, filtering, or state. `core/agent/command-router.mjs` holds the one command-parsing implementation both `scripts/cli.mjs` and the UI's in-page command bar (`POST /api/command`) call, so a command means the same thing from either surface. `ui/` is static HTML/CSS/vanilla-JS (no build step, no framework) served by the same process — see [COMMAND_CENTER_UI.md](COMMAND_CENTER_UI.md) for the full endpoint list and page-by-page breakdown.
 
 ## Skills
 

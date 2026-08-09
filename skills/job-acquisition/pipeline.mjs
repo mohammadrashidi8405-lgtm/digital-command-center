@@ -26,13 +26,15 @@ const SOURCES = [
  * DISCOVER → DEDUPLICATE → HARD FILTER → DEEP MATCH → SCORE → RANK → SELECT
  * → PRESENT → TRACK
  *
- * @param {{ memory, brain, profile, config, sourcesFilter?: string[] }} deps
+ * @param {{ memory, brain, profile, config, sourcesFilter?: string[], onStage?: (stage: string) => void|Promise<void> }} deps
  */
-export async function runCampaign({ memory, brain, profile, config, sourcesFilter }) {
+export async function runCampaign({ memory, brain, profile, config, sourcesFilter, onStage }) {
   const threshold = config.jobAcquisition?.scoreThreshold ?? 85;
   const minBeforeShortfall = config.jobAcquisition?.minResultsBeforeReportingShortfall ?? 3;
+  const emit = async (stage) => { if (onStage) await onStage(stage); };
 
   // --- DISCOVER ---
+  await emit('DISCOVERING');
   const activeSources = SOURCES.filter((s) => !sourcesFilter || sourcesFilter.includes(s.name));
   const discovered = [];
   for (const source of activeSources) {
@@ -42,6 +44,7 @@ export async function runCampaign({ memory, brain, profile, config, sourcesFilte
   }
 
   // --- DEDUPLICATE ---
+  await emit('DEDUPLICATING');
   const { unique, dropped: dupesDropped } = deduplicate(discovered);
   logger.info('deduplicated', { input: discovered.length, unique: unique.length, dropped: dupesDropped });
 
@@ -54,6 +57,12 @@ export async function runCampaign({ memory, brain, profile, config, sourcesFilte
   const results = { screened: 0, placeholderFiltered: 0, hardFiltered: 0, qualified: 0, selected: 0 };
   const selectedJobs = [];
 
+  // FILTERING and SCORING happen per-job in one pass below (filter, then —
+  // only if it survives — score immediately). The stage events are still
+  // emitted at real boundaries, just close together for a fast run; this is
+  // deliberately coarse rather than restructured into two passes purely to
+  // make progress reporting smoother.
+  await emit('FILTERING');
   for (const job of fresh) {
     results.screened++;
 
@@ -121,8 +130,13 @@ export async function runCampaign({ memory, brain, profile, config, sourcesFilte
     tracking[job.key] = record;
   }
 
+  await emit('SCORING');
+
   // --- RANK + SELECT ---
+  await emit('RANKING');
   selectedJobs.sort((a, b) => b.score - a.score);
+
+  await emit('SELECTING');
   for (const job of selectedJobs) {
     tracking[job.key].status = JobState.SELECTED;
   }

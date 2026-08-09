@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Agent } from '../core/agent/agent.mjs';
+import { parseCommand, executeCommand } from '../core/agent/command-router.mjs';
 
 const HELP = `Digital Command Center — CLI
 
@@ -20,12 +21,56 @@ Job Acquisition:
 Natural-language aliases (quote them): "start job campaign", "find opportunities",
 "show campaign status", "list active skills", "run follow-ups",
 "enable data-analysis", "disable job-acquisition"
+
+Command Center UI:
+  node server/api.mjs           Start the local dashboard + API server
 `;
 
-function parseSources(args) {
-  const flag = args.find((a) => a.startsWith('--sources='));
-  if (!flag) return undefined;
-  return flag.split('=')[1].split(',').map((s) => s.trim()).filter(Boolean);
+function printResult(result) {
+  switch (result.type) {
+    case 'skills':
+      for (const s of result.skills) {
+        console.log(`${s.enabled ? '[ON] ' : '[off]'} ${s.id.padEnd(20)} ${s.status.padEnd(12)} ${s.description}`);
+      }
+      break;
+    case 'skill-toggled':
+      console.log(`${result.enabled ? 'Enabled' : 'Disabled'}: ${result.skillId}`);
+      break;
+    case 'campaign-result': {
+      const r = result.result;
+      console.log(`Screened: ${r.screened}, placeholder-filtered: ${r.placeholderFiltered}, hard-filtered: ${r.hardFiltered}, qualified: ${r.qualified}, selected: ${r.selected} (threshold ${r.threshold})`);
+      if (r.shortfall) {
+        console.log('Fewer than the minimum quality bar were found. Reporting shortfall rather than lowering the threshold (per policy).');
+      }
+      for (const job of r.jobs) {
+        console.log(`  [${job.score}] ${job.title} — ${job.company || 'unknown'} (${job.url || job.source})`);
+        console.log(`      note: ${job.notePath}`);
+        console.log(`      draft: ${job.draftPath}`);
+      }
+      break;
+    }
+    case 'campaign-status':
+      console.log(`Total tracked: ${result.status.total}`);
+      for (const [state, count] of Object.entries(result.status.byStatus)) {
+        console.log(`  ${state}: ${count}`);
+      }
+      break;
+    case 'campaign-selected':
+      for (const j of result.jobs) console.log(`[${j.score}] ${j.title} — ${j.company} (${j.status})`);
+      break;
+    case 'follow-ups':
+      if (result.due.length === 0) console.log('No follow-ups due.');
+      for (const j of result.due) console.log(`${j.title} — ${j.company} (due ${j.followUpDate})`);
+      break;
+    case 'memory':
+      console.log(`Notes root: ${result.notesRoot}`);
+      break;
+    case 'system':
+      console.log(`Brain provider: ${result.brainProvider}`);
+      break;
+    default:
+      console.log(JSON.stringify(result, null, 2));
+  }
 }
 
 async function main() {
@@ -34,101 +79,17 @@ async function main() {
     console.log(HELP);
     return;
   }
-
-  // Accept a single natural-language string as argv[0] (§35).
-  const joined = rawArgs.join(' ').toLowerCase();
-  let command = rawArgs[0];
-  let args = rawArgs.slice(1);
-
-  const aliasMap = [
-    [/^start( a)? job campaign$|^find opportunities$/, () => (command = 'campaign') && (args = ['start'])],
-    [/^show campaign status$/, () => (command = 'campaign') && (args = ['status'])],
-    [/^list active skills$/, () => (command = 'skills')],
-    [/^run follow-?ups$/, () => (command = 'follow-ups')],
-    [/^analyze campaign$/, () => (command = 'campaign') && (args = ['status'])],
-    [/^enable (.+)$/, (m) => (command = 'enable') && (args = [m[1]])],
-    [/^disable (.+)$/, (m) => (command = 'disable') && (args = [m[1]])],
-  ];
-  for (const [pattern, apply] of aliasMap) {
-    const m = joined.match(pattern);
-    if (m) {
-      apply(m);
-      break;
-    }
+  if (['help', '--help', '-h'].includes(rawArgs[0])) {
+    console.log(HELP);
+    return;
   }
 
+  const { command, args } = parseCommand(rawArgs.join(' '));
   const agent = new Agent();
 
   try {
-    switch (command) {
-      case 'help':
-      case '--help':
-      case '-h':
-        console.log(HELP);
-        break;
-
-      case 'skills': {
-        const active = new Set(agent.listActiveSkills());
-        for (const s of agent.listAvailableSkills()) {
-          console.log(`${active.has(s.id) ? '[ON] ' : '[off]'} ${s.id.padEnd(20)} ${s.status.padEnd(12)} ${s.description}`);
-        }
-        break;
-      }
-
-      case 'enable': {
-        agent.enableSkill(args[0]);
-        console.log(`Enabled: ${args[0]}`);
-        break;
-      }
-
-      case 'disable': {
-        agent.disableSkill(args[0]);
-        console.log(`Disabled: ${args[0]}`);
-        break;
-      }
-
-      case 'campaign': {
-        const sub = args[0];
-        if (sub === 'start') {
-          const profile = agent.requireProfile();
-          const sourcesFilter = parseSources(args);
-          const result = await agent.runSkillTask('job-acquisition', 'runCampaign', { profile, sourcesFilter });
-          console.log(`Screened: ${result.screened}, placeholder-filtered: ${result.placeholderFiltered}, hard-filtered: ${result.hardFiltered}, qualified: ${result.qualified}, selected: ${result.selected} (threshold ${result.threshold})`);
-          if (result.shortfall) {
-            console.log(`Fewer than the minimum quality bar were found. Reporting shortfall rather than lowering the threshold (per policy).`);
-          }
-          for (const job of result.jobs) {
-            console.log(`  [${job.score}] ${job.title} — ${job.company || 'unknown'} (${job.url || job.source})`);
-            console.log(`      note: ${job.notePath}`);
-            console.log(`      draft: ${job.draftPath}`);
-          }
-        } else if (sub === 'status') {
-          const status = await agent.runSkillTask('job-acquisition', 'campaignStatus');
-          console.log(`Total tracked: ${status.total}`);
-          for (const [state, count] of Object.entries(status.byStatus)) {
-            console.log(`  ${state}: ${count}`);
-          }
-        } else if (sub === 'selected') {
-          const jobs = await agent.runSkillTask('job-acquisition', 'listSelected');
-          for (const j of jobs) console.log(`[${j.score}] ${j.title} — ${j.company} (${j.status})`);
-        } else {
-          console.log('Usage: campaign <start|status|selected>');
-        }
-        break;
-      }
-
-      case 'follow-ups': {
-        const due = await agent.runSkillTask('job-acquisition', 'dueFollowUps');
-        if (due.length === 0) console.log('No follow-ups due.');
-        for (const j of due) console.log(`${j.title} — ${j.company} (due ${j.followUpDate})`);
-        break;
-      }
-
-      default:
-        console.log(`Unknown command: "${command}"\n`);
-        console.log(HELP);
-        process.exitCode = 1;
-    }
+    const result = await executeCommand(agent, command, args);
+    printResult(result);
   } catch (err) {
     console.error(`Error: ${err.message}`);
     process.exitCode = 1;

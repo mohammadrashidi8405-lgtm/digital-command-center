@@ -20,6 +20,17 @@ node scripts/cli.mjs campaign status
 
 Full setup instructions: [docs/SETUP.md](docs/SETUP.md).
 
+## Command Center UI
+
+A local dashboard/API server sits on top of the same engine — same config, same tracking state, same pipeline, nothing duplicated.
+
+```bash
+node server/api.mjs
+# open http://localhost:3939
+```
+
+Dashboard, Campaign (with live SSE progress), Skills (real toggles), Opportunities (+ detail view), Memory, Activity, and System pages, plus an in-page command bar. See [docs/COMMAND_CENTER_UI.md](docs/COMMAND_CENTER_UI.md).
+
 ## Everyday commands
 
 ```bash
@@ -40,6 +51,7 @@ Natural-language aliases also work, quoted: `node scripts/cli.mjs "find opportun
 - [Setup](docs/SETUP.md) — installation, profile, Obsidian, GitHub
 - [Skills](docs/SKILLS.md) — the skill system and how to add a new one
 - [Job Acquisition](docs/JOB_ACQUISITION.md) — pipeline, scoring, sources, state model
+- [Command Center UI](docs/COMMAND_CENTER_UI.md) — server/API, pages, SSE campaign streaming
 - [Security](docs/SECURITY.md) — secrets, PII, untrusted-input handling
 - [Limitations](docs/LIMITATIONS.md) — what is honestly not implemented, and why
 
@@ -49,4 +61,4 @@ Natural-language aliases also work, quoted: `node scripts/cli.mjs "find opportun
 npm test
 ```
 
-45 tests over config, skill activation, dedup, scoring, hard filters, memory, logging/redaction, the brain fallback, and the full pipeline (threshold + shortfall behavior, reprocessing skip).
+98 tests over config, skill activation, dedup, scoring, hard filters, placeholder filtering, role-matching, manual-import validation, memory, logging/redaction, the brain fallback, the full pipeline (threshold + shortfall behavior, reprocessing skip), and the API server (real config read/write, real campaign runs, SSE, no-secrets check).
