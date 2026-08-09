@@ -61,6 +61,10 @@ Natural-language aliases also work, quoted: `node scripts/cli.mjs "find opportun
 - [Security](docs/SECURITY.md) — secrets, PII, untrusted-input handling
 - [Limitations](docs/LIMITATIONS.md) — what is honestly not implemented, and why
 
+## Portfolio / evidence
+
+[`portfolio/`](portfolio/) — case study, architecture walkthrough, engineering decisions, and a validation report with every capability classified as IMPLEMENTED / CONNECTED / VERIFIED / NOT CONNECTED / NOT VERIFIED / PLANNED, backed by real test output and real campaign data (no fabricated metrics). Start at [portfolio/README.md](portfolio/README.md).
+
 ## Testing
 
 ```bash
