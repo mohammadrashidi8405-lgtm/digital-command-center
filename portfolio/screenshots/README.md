@@ -1,3 +1,5 @@
+note: for a designed LinkedIn/GitHub cover graphic (not a UI screenshot), see [`../assets/thumbnail.png`](../assets/thumbnail.png) — it's a hand-built banner summarizing the project, not a capture of the running app, and isn't a substitute for the real screenshots below.
+
 # Screenshots — NOT CAPTURED
 
 **Status: NOT CAPTURED.** This session has no browser access (no connected screen-capture or browser-automation tool), so no image files were created here. Per the build brief: "Do NOT invent screenshots" — this repo will not contain empty, placeholder, or fabricated `.png` files pretending to be evidence. This file exists so the gap is explicit rather than silently missing.

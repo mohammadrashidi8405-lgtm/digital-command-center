@@ -1,5 +1,7 @@
 # Portfolio — Digital Command Center
 
+![Digital Command Center](assets/thumbnail.png)
+
 Evidence and interview-ready documentation for the Digital Command Center project. Every claim in this directory is backed by a linked artifact — a test run, a log file, a real campaign result — not asserted from memory. Where something isn't verified, it's labeled `NOT CONNECTED` / `NOT VERIFIED` / `PLANNED` explicitly; see [validation-report.md](validation-report.md) for the full capability table.
 
 ## Start here
