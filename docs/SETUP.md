@@ -6,7 +6,7 @@
 - Git
 - `gh` CLI, authenticated, if you want to push to GitHub (already set up on this machine as `mohammadrashidi8405-lgtm`)
 
-No paid services, no npm dependencies (zero-dependency by design — see §4 of the build brief). `npm install` has nothing to install.
+No paid services required, no npm dependencies (zero-dependency by design — see §4 of the build brief). `npm install` has nothing to install. The optional live Brain (below) is a real, metered Anthropic API — everything else in the system runs at zero additional cost.
 
 ## First run
 
@@ -43,7 +43,28 @@ Not required — the system writes identical Markdown to `memory/local-vault/` i
 
 ## Brain
 
-No live LLM API is configured on this machine (no `ANTHROPIC_API_KEY`, and the local `claude` CLI binary reports "native binary not installed"). The system runs fully functional without one — scoring and filtering are deterministic, not LLM-dependent. See [LIMITATIONS.md](LIMITATIONS.md) for what changes once a live Brain is available.
+`config/config.json`'s `brain` block selects the provider:
+
+```json
+"brain": { "provider": "claude", "model": "claude-opus-5", "enabled": true }
+```
+
+The system runs fully functional with **no key configured** — scoring, filtering, and thresholding are deterministic and never depend on the Brain. Without a key, the Claude provider automatically and transparently falls back to the honest file-drop brain; nothing breaks, nothing is faked.
+
+### Configuring a live Claude Brain
+
+1. Get a key at https://console.anthropic.com/settings/keys
+2. `cp .env.example .env` and set `ANTHROPIC_API_KEY=sk-ant-...` in `.env` (gitignored — never committed)
+3. Verify:
+   ```bash
+   node scripts/cli.mjs "brain status"
+   node scripts/cli.mjs "brain test"     # one minimal, low-cost live request
+   ```
+   `brain status` should report `CONNECTED` with the configured model; `brain test` sends a ~16-token round trip and prints the reply. The Command Center UI's System page shows the same status, plus a "TEST BRAIN" button.
+
+To switch providers later (a different model, a different vendor, or back to the offline file-drop brain for a while), edit `config/config.json`'s `brain.provider`/`brain.model` — no code changes required. Setting `"enabled": false` is a faster kill switch that ignores `provider` entirely.
+
+On this machine specifically: no `ANTHROPIC_API_KEY` is currently set, and the local `claude` CLI binary reports "native binary not installed". See [LIMITATIONS.md](LIMITATIONS.md) for exactly what that does and doesn't affect.
 
 ## Running tests
 

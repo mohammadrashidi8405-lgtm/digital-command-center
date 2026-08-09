@@ -2,7 +2,11 @@
 
 ## Secrets
 
-There are no API keys or credentials in this codebase. `.gitignore` blocks `.env*`, `*.pem`, `*.key`, and anything with `credentials`/`token`/`secret` in the name, as a backstop. `core/logging/logger.mjs` redacts any logged field whose key matches `/token|secret|password|api[_-]?key|authorization|cookie/i` before writing — this is defense-in-depth, not the primary control (the primary control is: never generate that data in the first place).
+There are no API keys or credentials committed in this codebase. The Claude Brain provider (`core/brain/claude-brain.mjs`) reads its credential exclusively from `process.env.ANTHROPIC_API_KEY` at runtime, loaded from a local, gitignored `.env` (`core/config/env.mjs`, wired into both entrypoints — `scripts/cli.mjs` and `server/api.mjs`) — the key never appears in `config/config.json`, in source, or in a commit. `.env.example` (committed) documents the variable name with an empty value only.
+
+`.gitignore` blocks `.env*` (with an explicit `!.env.example` exception), `*.pem`, `*.key`, and anything with `credentials`/`token`/`secret` in the name, as a backstop. `core/logging/logger.mjs` redacts any logged field whose key matches `/token|secret|password|api[_-]?key|authorization|cookie/i` before writing — this is defense-in-depth, not the primary control (the primary control is: never generate that data in the first place).
+
+The key is sent only as the `x-api-key` request header on calls to `https://api.anthropic.com/v1/messages` — never in a request body, never logged. `ClaudeBrain` also redacts the literal key value (and any `sk-ant-...`-shaped string) out of any error message before it's returned or logged, in case an upstream error body ever echoed it back. `/api/system`, `/api/status`, and the CLI's `brain status`/`brain test` only ever expose provider name, model, booleans, and timestamps — never the key, a header, or anything derived from them (`tests/server.test.mjs` and `tests/claude-brain.test.mjs` both assert this).
 
 ## Personal / candidate data
 

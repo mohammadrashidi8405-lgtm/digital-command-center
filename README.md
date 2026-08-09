@@ -41,7 +41,13 @@ node scripts/cli.mjs campaign start             # run discover→...→track
 node scripts/cli.mjs campaign status            # counts by job state
 node scripts/cli.mjs campaign selected          # currently selected jobs
 node scripts/cli.mjs follow-ups                 # jobs due for follow-up
+node scripts/cli.mjs "brain status"             # which Brain provider is active, and whether it's connected
+node scripts/cli.mjs "brain test"               # minimal live connectivity check (needs ANTHROPIC_API_KEY)
 ```
+
+## Brain
+
+The active reasoning provider is swappable (`config/config.json` → `brain.provider`). A real live provider, `ClaudeBrain`, calls the Anthropic API directly — see "Configuring a live Claude Brain" in [docs/SETUP.md](docs/SETUP.md). With no `ANTHROPIC_API_KEY` set, it transparently falls back to the honest file-drop brain; every stage of Job Acquisition that matters for correctness (filtering, scoring, the 85-point threshold) is deterministic and never depends on the Brain either way.
 
 Natural-language aliases also work, quoted: `node scripts/cli.mjs "find opportunities"`.
 
@@ -61,4 +67,4 @@ Natural-language aliases also work, quoted: `node scripts/cli.mjs "find opportun
 npm test
 ```
 
-98 tests over config, skill activation, dedup, scoring, hard filters, placeholder filtering, role-matching, manual-import validation, memory, logging/redaction, the brain fallback, the full pipeline (threshold + shortfall behavior, reprocessing skip), and the API server (real config read/write, real campaign runs, SSE, no-secrets check).
+125 tests over config, skill activation, dedup, scoring, hard filters, placeholder filtering, role-matching, manual-import validation, memory, logging/redaction, the file-drop brain fallback, the live Claude Brain (mocked — init, success, malformed/refused/truncated responses, error classification, bounded retries, secret redaction, status reporting; no real API key is ever required or used), the full pipeline (threshold + shortfall behavior, reprocessing skip), the command router, and the API server (real config read/write, real campaign runs, SSE, no-secrets check).

@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import { loadEnv } from '../core/config/env.mjs';
+loadEnv();
+
 import { createServer } from 'node:http';
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, dirname, extname, normalize } from 'node:path';
@@ -7,6 +10,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { Agent } from '../core/agent/agent.mjs';
 import { parseCommand, executeCommand } from '../core/agent/command-router.mjs';
 import { SkillDisabledError, SkillNotFoundError } from '../core/skills/skill-registry.mjs';
+import { brainStatus } from '../core/brain/status.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const UI_DIR = join(ROOT, 'ui');
@@ -75,7 +79,7 @@ function systemSnapshot(agent) {
   const skills = agent.listAvailableSkills();
   const active = new Set(agent.listActiveSkills());
   return {
-    brain: { provider: agent.brain.providerName, live: false, note: 'No ANTHROPIC_API_KEY / working claude CLI on this machine — file-drop adapter only.' },
+    brain: brainStatus(agent.brain),
     memory: {
       status: 'ok',
       notesRoot: agent.memory.notesRoot,

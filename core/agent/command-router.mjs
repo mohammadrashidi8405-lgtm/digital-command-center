@@ -5,6 +5,7 @@
  * whatever "start campaign" does from the terminal, it does identically
  * from the browser command bar.
  */
+import { brainStatus, testBrain } from '../brain/status.mjs';
 
 const ALIAS_PATTERNS = [
   [/^start( a)? job campaign$|^find opportunities$|^start campaign$/, () => ({ command: 'campaign', args: ['start'] })],
@@ -98,7 +99,14 @@ export async function executeCommand(agent, command, args = []) {
     }
 
     case 'system': {
-      return { type: 'system', brainProvider: agent.brain.providerName };
+      return { type: 'system', brainProvider: agent.brain.providerName, brain: brainStatus(agent.brain) };
+    }
+
+    case 'brain': {
+      const sub = args[0];
+      if (sub === 'status') return { type: 'brain-status', status: brainStatus(agent.brain) };
+      if (sub === 'test') return { type: 'brain-test', result: await testBrain(agent.brain) };
+      throw new Error('Usage: brain <status|test>');
     }
 
     default:

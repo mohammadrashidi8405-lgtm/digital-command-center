@@ -2,11 +2,13 @@
 
 Written plainly, per the build brief's requirement to never claim a capability that isn't real.
 
-## No live Brain / LLM API
+## Claude Brain is implemented but not connected on this machine
 
-This machine has no `ANTHROPIC_API_KEY`, and the local `claude` CLI binary reports `Error: claude native binary not installed` (postinstall didn't complete). The Brain is `FileDropBrain` — it writes prompts to `core/brain/inbox/` and checks `core/brain/outbox/` for a manually-supplied answer; it never calls a real model and never fabricates one. Every stage of the Job Acquisition pipeline that matters for correctness (hard filtering, scoring, thresholding) is deterministic and does **not** depend on the Brain — "deep match" brain calls are advisory-only and currently always come back `pending`.
+A real `ClaudeBrain` provider exists (`core/brain/claude-brain.mjs`, calls the live Anthropic Messages API) and `config/config.json` selects it (`brain.provider: "claude"`, `model: "claude-opus-5"`). It has been exercised against a full mocked test suite (`tests/claude-brain.test.mjs` — init, success, malformed/refused/truncated responses, 401/429/5xx classification, bounded retries, secret redaction, status reporting) but **not against the real API**, because this machine has no `ANTHROPIC_API_KEY` set. Run `node scripts/cli.mjs "brain status"` to confirm the current state honestly at any time — it will not claim `CONNECTED` unless a real request has actually succeeded.
 
-**To fix:** either run `node node_modules/@anthropic-ai/claude-code/install.cjs` to repair the local `claude` binary, or set `ANTHROPIC_API_KEY` and add a real provider adapter implementing `BrainInterface` (see ARCHITECTURE.md).
+With no key, `ClaudeBrain.generate()` transparently delegates to `FileDropBrain` — it writes prompts to `core/brain/inbox/` and checks `core/brain/outbox/` for a manually-supplied answer; it never calls a real model and never fabricates one. Every stage of the Job Acquisition pipeline that matters for correctness (hard filtering, scoring, thresholding) is deterministic and does **not** depend on the Brain — "deep match" brain calls are advisory-only (see ARCHITECTURE.md's "Deep match" section) and currently always come back `pending`.
+
+**To connect it:** see "Configuring a live Claude Brain" in [SETUP.md](SETUP.md) — set `ANTHROPIC_API_KEY` in `.env`, then run `node scripts/cli.mjs "brain test"`.
 
 ## No LinkedIn integration
 

@@ -50,8 +50,8 @@ Only one campaign can run at a time: a module-level flag in `server/api.mjs` ret
 - **Opportunity detail** — full score breakdown, bonuses/penalties, and an explanation generated from that same data (never invented) — click through from any opportunity row.
 - **Memory** — Obsidian connection status (clearly labeled `NOT CONNECTED` when true, with an explanation that the local Markdown layer is active instead) and per-category note counts.
 - **Activity** — real tail of `logs/command-center.jsonl`.
-- **System** — Brain provider and honest live/not-live status, Memory status, Skills counts, Browser automation status (`NOT_AVAILABLE`, per LIMITATIONS.md), Git branch/commit/dirty state, and a button that actually runs the test suite on demand.
-- **Command bar** (left nav, all pages) — same aliases as the CLI ("start campaign", "show opportunities", "enable data-analysis", …). No chat model behind it; if you type something it doesn't recognize, it says so rather than improvising a response.
+- **System** — Brain provider/model and honest CONNECTED/NOT CONNECTED/ERROR status (never faked — see ARCHITECTURE.md's Brain section), with a "TEST BRAIN" button that runs the same minimal live check as `brain test`; Memory status; Skills counts; Browser automation status (`NOT_AVAILABLE`, per LIMITATIONS.md); Git branch/commit/dirty state; and a button that actually runs the test suite on demand.
+- **Command bar** (left nav, all pages) — same aliases as the CLI ("start campaign", "show opportunities", "enable data-analysis", "brain status", "brain test", …). No chat model behind it; if you type something it doesn't recognize, it says so rather than improvising a response.
 
 ## Design direction
 

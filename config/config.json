@@ -7,12 +7,15 @@
   },
   "jobAcquisition": {
     "scoreThreshold": 85,
-    "minResultsBeforeReportingShortfall": 3
+    "minResultsBeforeReportingShortfall": 3,
+    "maxDeepMatchCallsPerRun": 20
   },
   "memory": {
     "obsidianVaultPath": null
   },
   "brain": {
-    "provider": "file-drop"
+    "provider": "claude",
+    "model": "claude-opus-5",
+    "enabled": true
   }
 }

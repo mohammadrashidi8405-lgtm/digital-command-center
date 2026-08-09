@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import { loadEnv } from '../core/config/env.mjs';
+loadEnv();
+
 import { Agent } from '../core/agent/agent.mjs';
 import { parseCommand, executeCommand } from '../core/agent/command-router.mjs';
 
@@ -17,6 +20,10 @@ Job Acquisition:
   campaign status                Show counts of tracked jobs by state
   campaign selected              List currently SELECTED / APPLICATION_READY jobs
   follow-ups                     List jobs whose follow-up date has arrived
+
+Brain:
+  brain status                  Show which Brain provider is active and whether it's connected
+  brain test                    Run a minimal, low-cost live connectivity check against the Claude API
 
 Natural-language aliases (quote them): "start job campaign", "find opportunities",
 "show campaign status", "list active skills", "run follow-ups",
@@ -67,7 +74,23 @@ function printResult(result) {
       break;
     case 'system':
       console.log(`Brain provider: ${result.brainProvider}`);
+      if (result.brain) console.log(`Brain status: ${result.brain.live ? 'CONNECTED' : (result.brain.configured ? 'ERROR' : 'NOT CONNECTED')} — ${result.brain.note}`);
       break;
+    case 'brain-status': {
+      const s = result.status;
+      const label = s.live ? 'CONNECTED' : (s.configured ? 'ERROR' : 'NOT CONNECTED');
+      console.log(`Brain: ${s.provider}${s.model ? ` (${s.model})` : ''} — ${label}`);
+      console.log(s.note);
+      break;
+    }
+    case 'brain-test': {
+      const r = result.result;
+      if (r.status === 'ok') console.log(`Brain test OK — response: ${r.text}`);
+      else if (r.status === 'not_configured') console.log(`Brain test: ${r.message}`);
+      else if (r.status === 'skipped') console.log(`Brain test skipped: ${r.message}`);
+      else console.log(`Brain test FAILED: ${r.error.type} — ${r.error.message}`);
+      break;
+    }
     default:
       console.log(JSON.stringify(result, null, 2));
   }

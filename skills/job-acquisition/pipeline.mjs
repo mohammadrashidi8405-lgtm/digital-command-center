@@ -14,6 +14,24 @@ import { discover as discoverManual } from './sources/manual-import.mjs';
 const TRACKING_NAMESPACE = 'job-acquisition-tracking';
 const DEEP_MATCH_MIN_SCORE = 60; // §21: only deep-analyze high-potential candidates
 
+// §12: structured, machine-readable deep-match output. Advisory only — never
+// touches selection, which stays governed by the deterministic score/threshold
+// (§11). additionalProperties:false + explicit `required` keeps this a valid
+// Anthropic structured-output schema (no recursion, no minimum/maxLength).
+const DEEP_MATCH_SCHEMA = {
+  type: 'object',
+  properties: {
+    relevance: { type: 'integer' },
+    reasoning: { type: 'string' },
+    strengths: { type: 'array', items: { type: 'string' } },
+    concerns: { type: 'array', items: { type: 'string' } },
+    missing_information: { type: 'array', items: { type: 'string' } },
+    recommendation: { type: 'string', enum: ['SELECT', 'REJECT', 'REVIEW'] },
+  },
+  required: ['relevance', 'reasoning', 'strengths', 'concerns', 'missing_information', 'recommendation'],
+  additionalProperties: false,
+};
+
 const SOURCES = [
   { name: 'remoteok', fn: discoverRemoteOk },
   { name: 'arbeitnow', fn: discoverArbeitnow },
@@ -31,6 +49,10 @@ const SOURCES = [
 export async function runCampaign({ memory, brain, profile, config, sourcesFilter, onStage }) {
   const threshold = config.jobAcquisition?.scoreThreshold ?? 85;
   const minBeforeShortfall = config.jobAcquisition?.minResultsBeforeReportingShortfall ?? 3;
+  // §18: hard bound on live Brain calls per campaign run — prevents an
+  // uncontrolled sequence of API calls (and their cost) from a single run.
+  const maxDeepMatchCalls = config.jobAcquisition?.maxDeepMatchCallsPerRun ?? 20;
+  let deepMatchCallsMade = 0;
   const emit = async (stage) => { if (onStage) await onStage(stage); };
 
   // --- DISCOVER ---
@@ -99,13 +121,28 @@ export async function runCampaign({ memory, brain, profile, config, sourcesFilte
     const scoreResult = scoreJob(job, profile);
 
     // --- DEEP MATCH (stage 3, brain-assisted, only for high-potential jobs) ---
+    // Advisory only: deepMatch never feeds back into scoreResult.total or the
+    // threshold comparison below (§11) — it only adds qualitative context to
+    // the note written for a job that's already been selected deterministically.
     let deepMatch = { status: 'skipped' };
+    let deepMatchEvaluation = null;
     if (scoreResult.total >= DEEP_MATCH_MIN_SCORE && brain) {
-      const prompt = `Assess fit between this candidate profile and job listing. ` +
-        `Return a short paragraph, not a score (scoring is deterministic elsewhere).\n\n` +
-        `JOB: ${job.title} at ${job.company || 'unknown company'}\n${(job.description || '').slice(0, 1500)}\n\n` +
-        `CANDIDATE: ${JSON.stringify({ education: profile.education, skills: profile.skills, targetRoles: profile.targetRoles })}`;
-      deepMatch = await brain.generate(prompt, { id: `deepmatch-${job.key}` });
+      if (deepMatchCallsMade >= maxDeepMatchCalls) {
+        deepMatch = { status: 'skipped-cap' };
+      } else {
+        deepMatchCallsMade++;
+        const prompt = `You are assisting a deterministic job-matching pipeline. The score below is already ` +
+          `final and authoritative — you are adding qualitative context only, never deciding selection. ` +
+          `Distinguish observed fact from inference; never invent candidate experience or job facts not given here.\n\n` +
+          `JOB: ${job.title} at ${job.company || 'unknown company'}\n${(job.description || '').slice(0, 1500)}\n\n` +
+          `CANDIDATE: ${JSON.stringify({ education: profile.education, skills: profile.skills, targetRoles: profile.targetRoles })}\n\n` +
+          `DETERMINISTIC SCORE: ${scoreResult.total}/100 (selection threshold ${threshold}). ` +
+          `"recommendation" is advisory only and does not override this score/threshold.`;
+        deepMatch = await brain.generate(prompt, { id: `deepmatch-${job.key}`, schema: DEEP_MATCH_SCHEMA, maxTokens: 700 });
+        if (deepMatch.status === 'ok' && deepMatch.text) {
+          try { deepMatchEvaluation = JSON.parse(deepMatch.text); } catch { deepMatchEvaluation = null; }
+        }
+      }
     }
 
     const confidenceTier = job.confidenceTier || ConfidenceTier.CONFIRMED_JOB;
@@ -119,13 +156,18 @@ export async function runCampaign({ memory, brain, profile, config, sourcesFilte
       penalties: scoreResult.penalties,
       deepMatchStatus: deepMatch.status,
       deepMatchRequestId: deepMatch.requestId || null,
+      // Only the short advisory verdict is persisted to tracking state (§21
+      // keeps persistent records compact) — the full evaluation (reasoning,
+      // strengths/concerns/missing_information) is attached below only for
+      // jobs that get a note written, not stored in tracking.json.
+      deepMatchRecommendation: deepMatchEvaluation?.recommendation || null,
       checkedAt: new Date().toISOString(),
     };
 
     if (scoreResult.total >= threshold && confidenceTier === ConfidenceTier.CONFIRMED_JOB) {
       record.status = JobState.QUALIFIED;
       results.qualified++;
-      selectedJobs.push({ ...job, ...record });
+      selectedJobs.push({ ...job, ...record, deepMatchEvaluation });
     }
     tracking[job.key] = record;
   }
@@ -167,6 +209,16 @@ export async function runCampaign({ memory, brain, profile, config, sourcesFilte
   return { ...results, threshold, shortfall, jobs: presented };
 }
 
+function renderDeepMatchSection(evaluation) {
+  if (!evaluation) return '';
+  return `
+## Brain evaluation (advisory only — does not affect selection, §11)
+- Relevance: ${evaluation.relevance}
+- Recommendation: ${evaluation.recommendation}
+- Reasoning: ${evaluation.reasoning}
+${evaluation.strengths?.length ? `- Strengths: ${evaluation.strengths.join('; ')}\n` : ''}${evaluation.concerns?.length ? `- Concerns: ${evaluation.concerns.join('; ')}\n` : ''}${evaluation.missing_information?.length ? `- Missing information: ${evaluation.missing_information.join('; ')}\n` : ''}`;
+}
+
 function minimalRecord(job) {
   // §21: store compact facts, not full descriptions, to keep persistent state small.
   return {
@@ -192,6 +244,7 @@ function renderJobNote(job) {
 ${Object.entries(job.scoreBreakdown).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
 ${job.bonuses.length ? `\n## Bonuses\n${job.bonuses.map(([r, v]) => `- ${r}: +${v}`).join('\n')}` : ''}
 ${job.penalties.length ? `\n## Penalties\n${job.penalties.map(([r, v]) => `- ${r}: ${v}`).join('\n')}` : ''}
+${renderDeepMatchSection(job.deepMatchEvaluation)}
 
 ## Next action
 Review draft application in \`skills/job-acquisition/outbox/${job.key}-application.md\` and complete human-required fields before sending.
