@@ -32,6 +32,14 @@ Obsidian is not installed on this Mac (`/Applications` has no Obsidian.app). The
 
 Comment text is free-form; company/title extraction is best-effort string parsing. Every job from this source is tagged `UNVERIFIED_SIGNAL` and can never be auto-`SELECTED` — only `CONFIRMED_JOB` listings clear the selection bar.
 
+## Bonus markers can still be tripped by company boilerplate, not just role text
+
+The Fix 1/2 role-matching correction (see JOB_ACQUISITION.md) scoped the bare AI/KI concept match to the listing title specifically because matching it against the full description let one company's repeated "AI-native startup" boilerplate wrongly pass ~35 unrelated roles. The four scoring bonus markers (`strong AI/startup alignment`, `strong portfolio relevance`, `strong team environment`, `founder/hiring-manager accessibility` — `scorer.mjs`) were **not** given the same treatment and still match against the full description. Confirmed during the same verification run: `strong AI/startup alignment` fired on 9 Clera postings including "Enterprise Account Manager" and the "Java Developer" listing that role-relevance now correctly blocks, purely from `/\bstartup\b/`, `/\bai[- ]first\b/`, `/\bseed\b/` appearing in company-description boilerplate rather than role-specific text. It didn't produce a wrong selection in this run because role-relevance and experience-level filtering already rejected those listings first, but it's the same root cause and the next campaign could combine it differently. Not fixed here — out of scope for the four diagnosed issues — but worth the same title-vs-description scoping treatment in a future pass.
+
+## The language hard-filter only recognizes the English phrase
+
+`filters.mjs`'s language check matches literal `/fluent (german|french|...)/i` — it catches English-language postings that state a language requirement in English, but a listing that states the requirement in German itself (e.g. "Fließende Deutschkenntnisse erforderlich") passes through unflagged. Observed in the same Clera batch: only 2 of ~35 postings (the ones phrased in English) triggered this filter. Not in scope for the four Phase 2 fixes; noted here rather than silently left for a future diagnostic to rediscover.
+
 ## Scoring is heuristic, not semantic
 
 `scorer.mjs` and `filters.mjs` use keyword/regex matching against listing text, not true language understanding — this was a deliberate choice to keep the pipeline fully functional and deterministic without a live Brain. It will misjudge listings that describe themselves in unusual language. Once a live Brain is connected, `pipeline.mjs`'s deep-match stage is the integration point for smarter matching.

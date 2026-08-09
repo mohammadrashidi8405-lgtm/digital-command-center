@@ -93,7 +93,7 @@ async function main() {
           const profile = agent.requireProfile();
           const sourcesFilter = parseSources(args);
           const result = await agent.runSkillTask('job-acquisition', 'runCampaign', { profile, sourcesFilter });
-          console.log(`Screened: ${result.screened}, hard-filtered: ${result.hardFiltered}, qualified: ${result.qualified}, selected: ${result.selected} (threshold ${result.threshold})`);
+          console.log(`Screened: ${result.screened}, placeholder-filtered: ${result.placeholderFiltered}, hard-filtered: ${result.hardFiltered}, qualified: ${result.qualified}, selected: ${result.selected} (threshold ${result.threshold})`);
           if (result.shortfall) {
             console.log(`Fewer than the minimum quality bar were found. Reporting shortfall rather than lowering the threshold (per policy).`);
           }

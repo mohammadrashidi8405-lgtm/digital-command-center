@@ -1,3 +1,5 @@
+import { matchRoleRelevance } from './role-matching.mjs';
+
 const SENIOR_MARKERS = [
   /\bsenior\b/i, /\bstaff\b/i, /\blead\b/i, /\bprincipal\b/i, /\bdirector\b/i,
   /\bhead of\b/i, /\bvp\b/i, /\bmanager\b/i, /\b\d{1,2}\+?\s*years?\b/i,
@@ -11,16 +13,6 @@ const FRAUD_MARKERS = [
   /processing fee/i, /application fee/i, /wire transfer/i, /send.*bank details/i,
   /pay (a|the) fee/i, /no interview (needed|required)/i, /western union/i,
   /crypto(currency)? (payment|wallet)/i, /telegram only/i,
-];
-
-// Semantic variations of the target roles (§15) — not exact-title matching.
-const ROLE_KEYWORDS = [
-  'ai operations', 'ai ops', 'ai startup', 'ai product', 'ai automation',
-  'product operations', 'product ops', 'ai implementation', 'ai workflow',
-  'ai/product operations', 'growth operations', 'founder\'s associate',
-  'data analyst', 'data operations', 'business analyst', 'research analyst',
-  'economic data', 'ai intern', 'automation intern', 'no-code', 'workflow automation',
-  'prompt engineer', 'llm', 'chatbot', 'ai agent',
 ];
 
 function textOf(job) {
@@ -43,8 +35,7 @@ export function hardFilter(job, profile) {
     reasons.push('experience-level: listing reads as senior/experienced-only');
   }
 
-  const hasRoleKeyword = ROLE_KEYWORDS.some((kw) => text.includes(kw));
-  if (!hasRoleKeyword) {
+  if (!matchRoleRelevance(job.title, job.description).isMatch) {
     reasons.push('role-relevance: no semantic match to target roles');
   }
 

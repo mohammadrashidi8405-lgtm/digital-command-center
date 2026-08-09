@@ -1,6 +1,7 @@
 import { logger } from '../../core/logging/logger.mjs';
 import { deduplicate, excludeAlreadyProcessed, jobKey } from './dedupe.mjs';
 import { hardFilter } from './filters.mjs';
+import { isPlaceholderListing } from './placeholder-filter.mjs';
 import { scoreJob } from './scorer.mjs';
 import { prepareApplicationDraft } from './outbox.mjs';
 import { JobState, ConfidenceTier } from './job-state.mjs';
@@ -50,11 +51,26 @@ export async function runCampaign({ memory, brain, profile, config, sourcesFilte
   const fresh = excludeAlreadyProcessed(unique, processedKeys);
   logger.info('skipped_already_processed', { skipped: unique.length - fresh.length });
 
-  const results = { screened: 0, hardFiltered: 0, qualified: 0, selected: 0 };
+  const results = { screened: 0, placeholderFiltered: 0, hardFiltered: 0, qualified: 0, selected: 0 };
   const selectedJobs = [];
 
   for (const job of fresh) {
     results.screened++;
+
+    // --- STAGE 1: cheap placeholder pre-filter (§21) — before any regex-based
+    // hard filtering. Tracked and logged separately from hardFiltered so the
+    // funnel report doesn't conflate "not a real job" with "real job, wrong fit".
+    if (isPlaceholderListing(job)) {
+      results.placeholderFiltered++;
+      tracking[job.key] = {
+        ...minimalRecord(job),
+        status: JobState.SKIPPED,
+        rejectionReasons: ['PLACEHOLDER_LISTING'],
+        checkedAt: new Date().toISOString(),
+      };
+      logger.decision('job_rejected_placeholder', { key: job.key, title: job.title });
+      continue;
+    }
 
     // --- HARD FILTER ---
     const filterResult = hardFilter(job, profile);

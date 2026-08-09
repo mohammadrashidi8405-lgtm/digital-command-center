@@ -1,3 +1,5 @@
+import { matchRoleRelevance } from './role-matching.mjs';
+
 const WEIGHTS = {
   roleMatch: 25,
   skillMatch: 20,
@@ -28,14 +30,18 @@ function textOf(job) {
   return `${job.title || ''} ${job.description || ''}`.toLowerCase();
 }
 
-function scoreRoleMatch(job, profile) {
-  const text = textOf(job);
-  const primary = profile.targetRoles?.primary || [];
-  const secondary = profile.targetRoles?.secondary || [];
-  const hitsPrimary = primary.some((r) => text.includes(r.toLowerCase().split(' ').slice(0, 2).join(' ')));
-  const hitsSecondary = secondary.some((r) => text.includes(r.toLowerCase().split(' ').slice(0, 2).join(' ')));
-  if (hitsPrimary) return WEIGHTS.roleMatch;
-  if (hitsSecondary) return Math.round(WEIGHTS.roleMatch * 0.7);
+/**
+ * Tiered off the SAME role-relevance signal the hard filter uses
+ * (role-matching.mjs), instead of a separate, narrower phrase check — see
+ * that module's header comment for why the two disagreed before. A single
+ * incidental match no longer buys full marks; it takes 2+ distinct hits to
+ * reach 100%, which is what stops an unrelated listing that happens to
+ * mention one target-adjacent phrase from scoring as a perfect role match.
+ */
+function scoreRoleMatch(job) {
+  const { hitCount } = matchRoleRelevance(job.title, job.description);
+  if (hitCount >= 2) return WEIGHTS.roleMatch;
+  if (hitCount === 1) return Math.round(WEIGHTS.roleMatch * 0.7);
   return Math.round(WEIGHTS.roleMatch * 0.3);
 }
 
@@ -88,7 +94,7 @@ function scoreApplicationFriction(job) {
 export function scoreJob(job, profile) {
   const text = textOf(job);
   const breakdown = {
-    roleMatch: scoreRoleMatch(job, profile),
+    roleMatch: scoreRoleMatch(job),
     skillMatch: scoreSkillMatch(job, profile),
     eligibility: scoreEligibility(job, profile),
     teamLearningValue: scoreTeamLearningValue(job),
